@@ -1,33 +1,42 @@
 import React from 'react';
-import {TouchableOpacity, Text, ActivityIndicator} from 'react-native';
+import {TouchableOpacity, Text, ActivityIndicator, StyleSheet} from 'react-native';
+import {colors} from '../theme/colors';
 
 interface Props {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  variant?: 'primary' | 'outline';
+  variant?: 'primary' | 'outline' | 'ghost';
   disabled?: boolean;
 }
 
 export function Button({title, onPress, loading, variant = 'primary', disabled}: Props) {
-  const base = 'rounded-2xl py-4 items-center justify-center';
-  const styles = variant === 'primary'
-    ? `${base} bg-primary`
-    : `${base} border border-primary`;
-
   return (
     <TouchableOpacity
-      className={`${styles} ${disabled || loading ? 'opacity-50' : ''}`}
+      style={[s.base, s[variant], (disabled || loading) && s.disabled]}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.8}>
+      activeOpacity={0.75}>
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={variant === 'primary' ? '#fff' : colors.primary} />
       ) : (
-        <Text className={`font-bold text-base ${variant === 'outline' ? 'text-primary' : 'text-white'}`}>
-          {title}
-        </Text>
+        <Text style={[s.text, variant !== 'primary' && s.textAlt]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
 }
+
+const s = StyleSheet.create({
+  base: {
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primary: {backgroundColor: colors.primary},
+  outline: {borderWidth: 1.5, borderColor: colors.primary, backgroundColor: 'transparent'},
+  ghost: {backgroundColor: 'transparent'},
+  disabled: {opacity: 0.45},
+  text: {color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.3},
+  textAlt: {color: colors.primary},
+});

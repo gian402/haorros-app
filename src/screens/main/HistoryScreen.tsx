@@ -1,26 +1,25 @@
 import React, {useEffect, useState, useCallback} from 'react';
-import {View, Text, FlatList, ActivityIndicator} from 'react-native';
+import {View, Text, FlatList, ActivityIndicator, StyleSheet} from 'react-native';
 import {RouteProp} from '@react-navigation/native';
 import {HomeStackParamList, Transaction} from '../../supabase/types';
 import {transactionsService} from '../../services/transactionsService';
 import {useGoalsStore} from '../../store/goalsStore';
+import {colors} from '../../theme/colors';
 
 type Props = {route: RouteProp<HomeStackParamList, 'History'>};
 
-function TransactionItem({tx}: {tx: Transaction}) {
-  const date = new Date(tx.created_at).toLocaleDateString('es-PE', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  });
+function TxItem({tx}: {tx: Transaction}) {
+  const date = new Date(tx.created_at).toLocaleDateString('es-PE', {day: '2-digit', month: 'short', year: 'numeric'});
   return (
-    <View className="flex-row items-center bg-dark-card rounded-xl p-4 mb-3">
-      <View className="w-10 h-10 rounded-full bg-primary/20 items-center justify-center mr-3">
-        <Text className="text-primary font-bold">+</Text>
+    <View style={s.item}>
+      <View style={s.avatar}>
+        <Text style={s.avatarText}>{(tx.user?.name ?? 'U')[0].toUpperCase()}</Text>
       </View>
-      <View className="flex-1">
-        <Text className="text-white font-medium">{tx.user?.name ?? 'Usuario'}</Text>
-        <Text className="text-gray-400 text-xs">{date}</Text>
+      <View style={s.info}>
+        <Text style={s.name}>{tx.user?.name ?? 'Usuario'}</Text>
+        <Text style={s.date}>{date}</Text>
       </View>
-      <Text className="text-accent font-bold text-base">S/ {tx.amount.toLocaleString()}</Text>
+      <Text style={s.amount}>+S/ {tx.amount.toLocaleString()}</Text>
     </View>
   );
 }
@@ -34,41 +33,57 @@ export function HistoryScreen({route}: Props) {
     try {
       const data = await transactionsService.getHistory(goalId);
       setTransactions(data);
-    } finally {
-      setLoading(false);
-    }
+    } finally {setLoading(false);}
   }, [goalId, setTransactions]);
 
   useEffect(() => {
     load();
-    const channel = transactionsService.subscribeToTransactions(goalId, tx => {
-      addTransaction(tx);
-    });
-    return () => {channel.unsubscribe();};
+    const ch = transactionsService.subscribeToTransactions(goalId, addTransaction);
+    return () => {ch.unsubscribe();};
   }, [goalId, load, addTransaction]);
 
   if (loading) {
-    return (
-      <View className="flex-1 bg-dark-bg items-center justify-center">
-        <ActivityIndicator size="large" color="#6C63FF" />
-      </View>
-    );
+    return <View style={s.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
 
   return (
-    <View className="flex-1 bg-dark-bg">
+    <View style={s.flex}>
       <FlatList
         data={transactions}
         keyExtractor={item => item.id}
-        contentContainerStyle={{padding: 16}}
+        contentContainerStyle={s.list}
         ListEmptyComponent={
-          <View className="items-center mt-20">
-            <Text className="text-4xl mb-3">📋</Text>
-            <Text className="text-white font-bold">Sin aportes aún</Text>
+          <View style={s.empty}>
+            <Text style={s.emptyIcon}>📋</Text>
+            <Text style={s.emptyText}>Sin aportes aún</Text>
           </View>
         }
-        renderItem={({item}) => <TransactionItem tx={item} />}
+        renderItem={({item}) => <TxItem tx={item} />}
       />
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  flex: {flex: 1, backgroundColor: colors.bg},
+  center: {flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center'},
+  list: {padding: 16},
+  item: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.card, borderRadius: 16, padding: 14, marginBottom: 10,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  avatar: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.primary + '33',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  avatarText: {color: colors.primary, fontWeight: '700', fontSize: 18},
+  info: {flex: 1},
+  name: {color: colors.white, fontWeight: '600', fontSize: 15},
+  date: {color: colors.gray2, fontSize: 12, marginTop: 2},
+  amount: {color: colors.accent, fontWeight: '700', fontSize: 16},
+  empty: {alignItems: 'center', marginTop: 60},
+  emptyIcon: {fontSize: 48, marginBottom: 12},
+  emptyText: {color: colors.gray2, fontSize: 16},
+});

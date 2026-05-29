@@ -8,20 +8,23 @@ import {GoalDetailScreen} from '../screens/main/GoalDetailScreen';
 import {HistoryScreen} from '../screens/main/HistoryScreen';
 import {CreateGoalScreen} from '../screens/main/CreateGoalScreen';
 import {ProfileScreen} from '../screens/main/ProfileScreen';
+import {colors} from '../theme/colors';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
+const headerStyle = {
+  headerStyle: {backgroundColor: colors.card},
+  headerTintColor: colors.white,
+  headerTitleStyle: {fontWeight: '700' as const, color: colors.white},
+  headerShadowVisible: false,
+};
+
 function HomeStackNavigator() {
   return (
-    <HomeStack.Navigator
-      screenOptions={{
-        headerStyle: {backgroundColor: '#1A1A2E'},
-        headerTintColor: '#fff',
-        headerTitleStyle: {fontWeight: '700'},
-      }}>
-      <HomeStack.Screen name="GoalList" component={HomeScreen} options={{title: 'Haorros'}} />
-      <HomeStack.Screen name="GoalDetail" component={GoalDetailScreen} options={{title: 'Meta'}} />
+    <HomeStack.Navigator screenOptions={headerStyle}>
+      <HomeStack.Screen name="GoalList" component={HomeScreen} options={{title: 'Haorros 💰'}} />
+      <HomeStack.Screen name="GoalDetail" component={GoalDetailScreen} options={{title: 'Detalle'}} />
       <HomeStack.Screen name="History" component={HistoryScreen} options={{title: 'Historial'}} />
     </HomeStack.Navigator>
   );
@@ -33,25 +36,26 @@ export function MainNavigator() {
       screenOptions={({route}) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1A1A2E',
-          borderTopColor: '#2A2A4A',
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
           paddingBottom: 8,
-          height: 60,
+          paddingTop: 6,
+          height: 62,
         },
-        tabBarActiveTintColor: '#6C63FF',
-        tabBarInactiveTintColor: '#555577',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.gray3,
+        tabBarLabelStyle: {fontSize: 11, fontWeight: '600'},
         tabBarIcon: ({color, size}) => {
-          const icons: Record<string, string> = {
-            Home: 'home',
-            CreateGoal: 'plus-circle',
-            Profile: 'user',
-          };
+          const icons: Record<string, string> = {Home: 'home', CreateGoal: 'plus-circle', Profile: 'user'};
           return <Icon name={(icons[route.name] ?? 'circle') as 'home'} size={size} color={color} />;
         },
       })}>
       <Tab.Screen name="Home" component={HomeStackNavigator} options={{tabBarLabel: 'Inicio'}} />
-      <Tab.Screen name="CreateGoal" component={CreateGoalScreen} options={{tabBarLabel: 'Nueva Meta', headerShown: true, headerStyle: {backgroundColor: '#1A1A2E'}, headerTintColor: '#fff', title: 'Nueva Meta'}} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{tabBarLabel: 'Perfil', headerShown: true, headerStyle: {backgroundColor: '#1A1A2E'}, headerTintColor: '#fff', title: 'Perfil'}} />
+      <Tab.Screen name="CreateGoal" component={CreateGoalScreen}
+        options={{tabBarLabel: 'Nueva Meta', headerShown: true, ...headerStyle, title: 'Nueva Meta'}} />
+      <Tab.Screen name="Profile" component={ProfileScreen}
+        options={{tabBarLabel: 'Perfil', headerShown: true, ...headerStyle, title: 'Mi Perfil'}} />
     </Tab.Navigator>
   );
 }
