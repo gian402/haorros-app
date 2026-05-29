@@ -1,6 +1,7 @@
 import React, {useEffect, useCallback, useState} from 'react';
 import {View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, TouchableOpacity} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useFocusEffect} from '@react-navigation/native';
 import {HomeStackParamList} from '../../supabase/types';
 import {useGoalsStore} from '../../store/goalsStore';
 import {useAuthStore} from '../../store/authStore';
@@ -25,6 +26,12 @@ export function HomeScreen({navigation}: Props) {
   }, [session, setGoals]);
 
   useEffect(() => {load();}, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   if (loading) {
     return <View style={s.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
