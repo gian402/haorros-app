@@ -20,12 +20,10 @@
     "react": "19.2.3",
     "react-native": "0.85.3",
     "react-native-image-picker": "7.1.2",
-    "react-native-reanimated": "^4.3.1",
     "react-native-safe-area-context": "5.5.2",
     "react-native-screens": "4.10.0",
     "react-native-svg": "15.11.2",
     "react-native-url-polyfill": "2.0.0",
-    "react-native-worklets": "^0.9.1",
     "zustand": "5.0.5"
   },
   "devDependencies": {
