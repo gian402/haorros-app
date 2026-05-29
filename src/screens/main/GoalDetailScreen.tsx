@@ -40,6 +40,20 @@ export function GoalDetailScreen({navigation, route}: Props) {
     return () => {ch.unsubscribe();};
   }, [goalId, load, updateGoal]);
 
+  const handleDelete = () => {
+    Alert.alert('Eliminar meta', '¿Estás seguro? Esta acción no se puede deshacer.', [
+      {text: 'Cancelar', style: 'cancel'},
+      {text: 'Eliminar', style: 'destructive', onPress: async () => {
+        try {
+          await goalsService.deleteGoal(goalId);
+          navigation.goBack();
+        } catch (e: unknown) {
+          Alert.alert('Error', e instanceof Error ? e.message : 'Error al eliminar');
+        }
+      }},
+    ]);
+  };
+
   const handleAdd = async () => {
     const num = parseFloat(amount);
     if (!num || num <= 0) {Alert.alert('Error', 'Monto inválido'); return;}
@@ -106,9 +120,12 @@ export function GoalDetailScreen({navigation, route}: Props) {
           </View>
           <Text style={s.shareArrow}>›</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
+          <Text style={s.deleteTxt}>🗑  Eliminar meta</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Modal agregar */}
       <Modal visible={addModal} transparent animationType="slide">
         <View style={s.overlay}>
           <View style={s.sheet}>
@@ -129,7 +146,6 @@ export function GoalDetailScreen({navigation, route}: Props) {
         </View>
       </Modal>
 
-      {/* Modal compartir */}
       <Modal visible={shareModal} transparent animationType="slide">
         <View style={s.overlay}>
           <View style={s.sheet}>
@@ -177,6 +193,12 @@ const s = StyleSheet.create({
   shareTitle: {color: colors.white, fontWeight: '600', fontSize: 15},
   shareSub: {color: colors.gray2, fontSize: 12, marginTop: 2},
   shareArrow: {color: colors.gray2, fontSize: 22},
+  deleteBtn: {
+    marginTop: 16, padding: 16, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.danger + '55',
+    backgroundColor: colors.danger + '11', alignItems: 'center',
+  },
+  deleteTxt: {color: colors.danger, fontWeight: '700', fontSize: 15},
   overlay: {flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)'},
   sheet: {backgroundColor: colors.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24},
   sheetTitle: {color: colors.white, fontSize: 20, fontWeight: '700', marginBottom: 16},

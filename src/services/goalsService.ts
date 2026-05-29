@@ -6,7 +6,7 @@ export const goalsService = {
     const {data, error} = await supabase
       .from('goals')
       .select('*, members:goal_members(id, user_id, user:users(id, name, email))')
-      .or(`owner_id.eq.${userId},goal_members.user_id.eq.${userId}`)
+      .eq('owner_id', userId)
       .order('created_at', {ascending: false});
     if (error) throw error;
     return data ?? [];
@@ -48,6 +48,11 @@ export const goalsService = {
 
   async addMember(goalId: string, userId: string) {
     const {error} = await supabase.from('goal_members').insert({goal_id: goalId, user_id: userId});
+    if (error) throw error;
+  },
+
+  async deleteGoal(goalId: string): Promise<void> {
+    const {error} = await supabase.from('goals').delete().eq('id', goalId);
     if (error) throw error;
   },
 
