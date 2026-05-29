@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-vector-icons/feather": "^13.1.2",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/native": "^7.2.5",
@@ -19,10 +19,10 @@
     "nativewind": "4.1.23",
     "react": "19.2.3",
     "react-native": "0.85.3",
-    "react-native-image-picker": "7.1.2",
-    "react-native-safe-area-context": "5.5.2",
-    "react-native-screens": "4.10.0",
-    "react-native-svg": "15.11.2",
+    "react-native-image-picker": "^8.2.0",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-screens": "^4.25.2",
+    "react-native-svg": "^15.15.5",
     "react-native-url-polyfill": "2.0.0",
     "zustand": "5.0.5"
   },
