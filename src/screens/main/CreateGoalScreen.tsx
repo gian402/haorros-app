@@ -39,7 +39,8 @@ export function CreateGoalScreen() {
       setTitle(''); setTarget(''); setImageUri(null);
       Alert.alert('¡Listo!', 'Meta creada exitosamente 🎉');
     } catch (e: unknown) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Error al crear');
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      Alert.alert('Error al crear meta', msg);
     } finally {setLoading(false);}
   };
 
