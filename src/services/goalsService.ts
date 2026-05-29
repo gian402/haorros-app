@@ -3,13 +3,37 @@ import {Goal} from '../supabase/types';
 
 export const goalsService = {
   async getMyGoals(userId: string): Promise<Goal[]> {
-    const {data, error} = await supabase
+    // Metas propias
+    const {data: owned, error: e1} = await supabase
       .from('goals')
       .select('*, members:goal_members(id, user_id, user:users(id, name, email))')
       .eq('owner_id', userId)
       .order('created_at', {ascending: false});
-    if (error) throw error;
-    return data ?? [];
+    if (e1) throw e1;
+
+    // Metas donde soy miembro
+    const {data: memberRows, error: e2} = await supabase
+      .from('goal_members')
+      .select('goal_id')
+      .eq('user_id', userId);
+    if (e2) throw e2;
+
+    const memberGoalIds = (memberRows ?? []).map(r => r.goal_id);
+    let shared: Goal[] = [];
+    if (memberGoalIds.length > 0) {
+      const {data, error: e3} = await supabase
+        .from('goals')
+        .select('*, members:goal_members(id, user_id, user:users(id, name, email))')
+        .in('id', memberGoalIds)
+        .order('created_at', {ascending: false});
+      if (e3) throw e3;
+      shared = data ?? [];
+    }
+
+    // Combinar sin duplicados
+    const all = [...(owned ?? []), ...shared];
+    const seen = new Set<string>();
+    return all.filter(g => seen.has(g.id) ? false : (seen.add(g.id), true));
   },
 
   async getGoal(goalId: string): Promise<Goal> {

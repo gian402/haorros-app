@@ -49,7 +49,7 @@ alter table public.goal_members enable row level security;
 alter table public.transactions enable row level security;
 
 -- Políticas users
-create policy "Users can read own profile" on public.users for select using (auth.uid() = id);
+create policy "Auth users can search by email" on public.users for select using (auth.role() = 'authenticated');
 create policy "Users can update own profile" on public.users for update using (auth.uid() = id);
 
 -- Políticas goals: owner o miembro puede leer

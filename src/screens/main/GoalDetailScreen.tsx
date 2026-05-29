@@ -76,7 +76,8 @@ export function GoalDetailScreen({navigation, route}: Props) {
       );
       if (!data) {Alert.alert('Error', 'Usuario no encontrado'); return;}
       await goalsService.addMember(goalId, data.id);
-      Alert.alert('¡Listo!', 'Usuario agregado');
+      await load();
+      Alert.alert('¡Listo!', 'Usuario agregado a la meta');
       setShareModal(false); setShareEmail('');
     } catch {Alert.alert('Error', 'No se pudo agregar');}
   };
