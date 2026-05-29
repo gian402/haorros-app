@@ -33,7 +33,11 @@ export function CreateGoalScreen() {
         image_url: null, owner_id: session.user.id,
       });
       if (imageUri) {
-        goal.image_url = await goalsService.uploadImage(goal.id, imageUri);
+        try {
+          goal.image_url = await goalsService.uploadImage(goal.id, imageUri);
+        } catch {
+          // Image upload failed silently — goal still created
+        }
       }
       setGoals([goal, ...goals]);
       setTitle(''); setTarget(''); setImageUri(null);

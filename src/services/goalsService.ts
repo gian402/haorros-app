@@ -33,16 +33,15 @@ export const goalsService = {
   },
 
   async uploadImage(goalId: string, uri: string): Promise<string> {
-    const ext = (uri.split('.').pop() ?? 'jpg').toLowerCase().replace(/\?.*/, '');
+    const ext = (uri.split('.').pop() ?? 'jpg').split('?')[0].toLowerCase();
     const path = `goals/${goalId}.${ext}`;
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    const formData = new FormData();
+    formData.append('file', {uri, name: `${goalId}.${ext}`, type: `image/${ext}`} as unknown as Blob);
     const {error} = await supabase.storage
       .from('goal-images')
-      .upload(path, blob, {contentType: `image/${ext}`, upsert: true});
+      .upload(path, formData, {upsert: true});
     if (error) throw error;
     const {data} = supabase.storage.from('goal-images').getPublicUrl(path);
-    // Update goal image_url in DB
     await supabase.from('goals').update({image_url: data.publicUrl}).eq('id', goalId);
     return data.publicUrl;
   },
