@@ -30,7 +30,9 @@ export function ProfileScreen() {
   useEffect(() => {
     if (!userId) return;
     supabase.from('users').select('avatar_url').eq('id', userId).single()
-      .then(({data}) => { if (data?.avatar_url) setAvatarUrl(data.avatar_url); });
+      .then(({data}) => {
+        if (data?.avatar_url) setAvatarUrl(data.avatar_url + '?t=' + Date.now());
+      });
   }, [userId]);
 
   const totalSaved = goals.reduce((s, g) => s + g.current_amount, 0);
@@ -60,7 +62,7 @@ export function ProfileScreen() {
 
       // Guardar en tabla users para que otros la vean
       await supabase.from('users').upsert(
-        {id: userId, avatar_url: urlData.publicUrl},
+        {id: userId, name, email, avatar_url: urlData.publicUrl},
         {onConflict: 'id'}
       );
       setAvatarUrl(publicUrl);
