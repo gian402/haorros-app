@@ -8,6 +8,12 @@ interface Props {
   target: number;
 }
 
+function getBarColor(progress: number): string {
+  if (progress >= 80) return '#00C853'; // verde
+  if (progress >= 30) return '#FFB300'; // amarillo
+  return '#FF4D6D';                     // rojo
+}
+
 export function ProgressBar({progress, current, target}: Props) {
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -20,18 +26,19 @@ export function ProgressBar({progress, current, target}: Props) {
   }, [progress, anim]);
 
   const width = anim.interpolate({inputRange: [0, 100], outputRange: ['0%', '100%']});
+  const barColor = getBarColor(progress);
 
   return (
     <View>
       <View style={s.row}>
         <Text style={s.amount}>S/ {current.toLocaleString()}</Text>
-        <View style={s.badge}>
-          <Text style={s.pct}>{Math.round(progress)}%</Text>
+        <View style={[s.badge, {backgroundColor: barColor + '33'}]}>
+          <Text style={[s.pct, {color: barColor}]}>{Math.round(progress)}%</Text>
         </View>
         <Text style={s.target}>S/ {target.toLocaleString()}</Text>
       </View>
       <View style={s.track}>
-        <Animated.View style={[s.fill, {width}]} />
+        <Animated.View style={[s.fill, {width, backgroundColor: barColor}]} />
       </View>
     </View>
   );
@@ -41,8 +48,8 @@ const s = StyleSheet.create({
   row: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10},
   amount: {color: colors.gray2, fontSize: 13},
   target: {color: colors.gray2, fontSize: 13},
-  badge: {backgroundColor: colors.primary + '33', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20},
-  pct: {color: colors.primary, fontWeight: '700', fontSize: 13},
+  badge: {paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20},
+  pct: {fontWeight: '700', fontSize: 13},
   track: {height: 8, backgroundColor: colors.border, borderRadius: 99, overflow: 'hidden'},
-  fill: {height: '100%', backgroundColor: colors.primary, borderRadius: 99},
+  fill: {height: '100%', borderRadius: 99},
 });

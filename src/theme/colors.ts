@@ -1,14 +1,14 @@
 export const colors = {
-  bg: '#0A0A14',
-  card: '#12122A',
-  surface: '#1A1A35',
-  border: '#2D2D5E',
-  primary: '#7C6FFF',
-  primaryDark: '#5A4FCC',
-  accent: '#00E5B0',
+  bg: '#000000',
+  card: '#0D0D0D',
+  surface: '#1A1A1A',
+  border: '#2A2A2A',
+  primary: '#D4AF37',       // dorado
+  primaryDark: '#A8892A',   // dorado oscuro
+  accent: '#F0D060',        // dorado claro
   danger: '#FF4D6D',
   white: '#FFFFFF',
-  gray1: '#E0E0FF',
-  gray2: '#9090BB',
-  gray3: '#555580',
+  gray1: '#E8E8E8',
+  gray2: '#888888',
+  gray3: '#444444',
 };

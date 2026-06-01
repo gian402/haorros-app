@@ -1,22 +1,45 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {ActivityIndicator, View, StyleSheet} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuthStore} from '../store/authStore';
 import {AuthNavigator} from './AuthNavigator';
 import {MainNavigator} from './MainNavigator';
+import {SplashScreen} from '../screens/auth/SplashScreen';
+import {OnboardingScreen} from '../screens/auth/OnboardingScreen';
 import {RootStackParamList} from '../supabase/types';
 import {colors} from '../theme/colors';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+type Phase = 'splash' | 'onboarding' | 'app';
+
 export function RootNavigator() {
   const {session, loading, init} = useAuthStore();
+  const [phase, setPhase] = useState<Phase>('splash');
 
   useEffect(() => {init();}, [init]);
 
+  const handleSplashDone = async () => {
+    const seen = await AsyncStorage.getItem('onboarding_done');
+    setPhase(seen ? 'app' : 'onboarding');
+  };
+
+  const handleOnboardingDone = async () => {
+    await AsyncStorage.setItem('onboarding_done', '1');
+    setPhase('app');
+  };
+
+  if (phase === 'splash') {
+    return <SplashScreen onFinish={handleSplashDone} />;
+  }
+
+  if (phase === 'onboarding') {
+    return <OnboardingScreen onFinish={handleOnboardingDone} />;
+  }
+
   if (loading) {
-    return <View style={s.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
+    return <SplashScreen onFinish={() => {}} />;
   }
 
   return (
@@ -31,7 +54,3 @@ export function RootNavigator() {
     </NavigationContainer>
   );
 }
-
-const s = StyleSheet.create({
-  center: {flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center'},
-});

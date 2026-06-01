@@ -3,6 +3,7 @@ import {View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {AuthStackParamList} from '../../supabase/types';
 import {authService} from '../../services/authService';
+import {translateAuthError} from '../../services/authErrors';
 import {Input} from '../../components/Input';
 import {Button} from '../../components/Button';
 import {colors} from '../../theme/colors';
@@ -18,12 +19,12 @@ export function RegisterScreen({navigation}: Props) {
 
   const handleRegister = async () => {
     if (!name || !email || !password) {setError('Completa todos los campos'); return;}
-    if (password.length < 6) {setError('Mínimo 6 caracteres en la contraseña'); return;}
+    if (password.length < 8) {setError('La contraseña debe tener al menos 8 caracteres'); return;}
     setLoading(true); setError('');
     try {
       await authService.signUp(email.trim(), password, name.trim());
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error al registrarse');
+      setError(translateAuthError(e instanceof Error ? e.message : ''));
     } finally {setLoading(false);}
   };
 
@@ -44,7 +45,7 @@ export function RegisterScreen({navigation}: Props) {
             <Input label="Correo electrónico" value={email} onChangeText={setEmail}
               keyboardType="email-address" autoCapitalize="none" placeholder="tu@correo.com" />
             <Input label="Contraseña" value={password} onChangeText={setPassword}
-              secureTextEntry placeholder="Mínimo 6 caracteres" />
+              secureTextEntry placeholder="Mínimo 8 caracteres" />
             <Button title="Crear cuenta" onPress={handleRegister} loading={loading} />
           </View>
 
@@ -62,17 +63,17 @@ const s = StyleSheet.create({
   scroll: {flexGrow: 1},
   container: {flex: 1, paddingHorizontal: 28, justifyContent: 'center', paddingVertical: 40},
   logoWrap: {
-    width: 80, height: 80, borderRadius: 24,
-    backgroundColor: colors.accent + '22',
+    width: 88, height: 88, borderRadius: 26,
+    backgroundColor: colors.surface,
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 20, alignSelf: 'center',
-    borderWidth: 1, borderColor: colors.accent + '44',
+    marginBottom: 24, alignSelf: 'center',
+    borderWidth: 1, borderColor: colors.border,
   },
-  logoIcon: {fontSize: 36},
+  logoIcon: {fontSize: 40},
   title: {color: colors.white, fontSize: 32, fontWeight: '800', textAlign: 'center', letterSpacing: -0.5},
   subtitle: {color: colors.gray2, fontSize: 15, textAlign: 'center', marginTop: 6, marginBottom: 36},
   errorBox: {
-    backgroundColor: colors.danger + '22', borderWidth: 1, borderColor: colors.danger,
+    backgroundColor: colors.danger + '18', borderWidth: 1, borderColor: colors.danger + '88',
     borderRadius: 12, padding: 12, marginBottom: 16,
   },
   errorText: {color: colors.danger, fontSize: 13},

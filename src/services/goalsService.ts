@@ -75,6 +75,16 @@ export const goalsService = {
     if (error) throw error;
   },
 
+  async removeMember(memberId: string) {
+    const {error} = await supabase.from('goal_members').delete().eq('id', memberId);
+    if (error) throw error;
+  },
+
+  async updateGoal(goalId: string, fields: {title?: string; target_amount?: number}) {
+    const {error} = await supabase.from('goals').update(fields).eq('id', goalId);
+    if (error) throw error;
+  },
+
   async deleteGoal(goalId: string): Promise<void> {
     const {error} = await supabase.from('goals').delete().eq('id', goalId);
     if (error) throw error;

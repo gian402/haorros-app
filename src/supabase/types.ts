@@ -12,6 +12,8 @@ export interface Goal {
   image_url: string | null;
   owner_id: string;
   created_at: string;
+  deadline?: string | null;
+  category?: string | null;
   members?: GoalMember[];
 }
 
@@ -39,6 +41,7 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
 };
 
 export type MainTabParamList = {

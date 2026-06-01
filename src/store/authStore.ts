@@ -30,8 +30,13 @@ export const useAuthStore = create<AuthState>(set => ({
     supabase.auth.getSession().then(({data: {session}}) => {
       set({session, loading: false});
     });
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({session, loading: false});
+    supabase.auth.onAuthStateChange((event, session) => {
+      // TOKEN_REFRESHED_FAILED o SIGNED_OUT → limpiar sesión → RootNavigator redirige a Auth
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        set({session, loading: false});
+      } else {
+        set({session, loading: false});
+      }
     });
   },
 }));
