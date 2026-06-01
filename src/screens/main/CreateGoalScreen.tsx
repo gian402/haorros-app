@@ -123,7 +123,6 @@ export function CreateGoalScreen({navigation}: Props) {
             </TouchableOpacity>
           ))}
         </View>
-
         <View style={s.amountWrap}>
           <Text style={s.amountLabel}>Fecha límite (opcional)</Text>
           <TextInput
@@ -163,14 +162,14 @@ const s = StyleSheet.create({
     color: colors.white, fontSize: 16,
   },
   sectionLabel: {color: colors.gray2, fontSize: 13, fontWeight: '600', marginBottom: 10},
-  categories: {flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20},
+  categories: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20},
   catBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12,
+    width: '22%',
+    alignItems: 'center', paddingVertical: 10, borderRadius: 14,
     backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border,
   },
-  catBtnActive: {borderColor: colors.primary, backgroundColor: colors.primary + '22'},
-  catIcon: {fontSize: 16},
-  catLabel: {color: colors.gray2, fontSize: 13, fontWeight: '600'},
+  catBtnActive: {borderColor: colors.primary, backgroundColor: colors.primary + '20'},
+  catIcon: {fontSize: 22, marginBottom: 4},
+  catLabel: {color: colors.gray2, fontSize: 10, fontWeight: '600', textAlign: 'center'},
   catLabelActive: {color: colors.primary},
 });
