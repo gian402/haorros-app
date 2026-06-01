@@ -7,6 +7,7 @@ import {launchImageLibrary} from 'react-native-image-picker';
 import {useAuthStore} from '../../store/authStore';
 import {useGoalsStore} from '../../store/goalsStore';
 import {supabase} from '../../supabase/client';
+import {extractError} from '../../services/extractError';
 import {colors} from '../../theme/colors';
 
 export function ProfileScreen() {
@@ -42,19 +43,29 @@ export function ProfileScreen() {
     setUploadingAvatar(true);
     try {
       const ext = uri.split('.').pop()?.split('?')[0]?.toLowerCase() ?? 'jpg';
-      const path = `avatars/${userId}.${ext}`;
+      const path = `${userId}.${ext}`;
       const formData = new FormData();
       formData.append('file', {uri, name: `avatar.${ext}`, type: `image/${ext}`} as unknown as Blob);
+
+      // Intentar crear el bucket si no existe
+      await supabase.storage.createBucket('avatars', {public: true}).catch(() => {/* ya existe */});
+
       const {error: upErr} = await supabase.storage
         .from('avatars')
         .upload(path, formData, {upsert: true});
       if (upErr) throw upErr;
+
       const {data: urlData} = supabase.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl + '?t=' + Date.now();
+
       // Guardar en tabla users para que otros la vean
-      await supabase.from('users').upsert({id: userId, avatar_url: urlData.publicUrl}, {onConflict: 'id'});
-      setAvatarUrl(urlData.publicUrl + '?t=' + Date.now()); // cache bust
+      await supabase.from('users').upsert(
+        {id: userId, avatar_url: urlData.publicUrl},
+        {onConflict: 'id'}
+      );
+      setAvatarUrl(publicUrl);
     } catch (e: unknown) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'No se pudo subir la foto');
+      Alert.alert('Error al subir foto', extractError(e));
     } finally {
       setUploadingAvatar(false);
     }

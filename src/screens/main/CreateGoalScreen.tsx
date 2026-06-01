@@ -3,13 +3,18 @@ import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
   Image, Alert, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {useAuthStore} from '../../store/authStore';
 import {useGoalsStore} from '../../store/goalsStore';
 import {goalsService} from '../../services/goalsService';
+import {extractError} from '../../services/extractError';
 import {Input} from '../../components/Input';
 import {Button} from '../../components/Button';
 import {colors} from '../../theme/colors';
+import {MainStackParamList} from '../../supabase/types';
+
+type Props = {navigation: NativeStackNavigationProp<MainStackParamList, 'CreateGoal'>};
 
 const CATEGORIES = [
   {key: 'viaje', label: 'Viaje', icon: '✈️'},
@@ -22,7 +27,7 @@ const CATEGORIES = [
   {key: 'otro', label: 'Otro', icon: '🎯'},
 ];
 
-export function CreateGoalScreen() {
+export function CreateGoalScreen({navigation}: Props) {
   const {session} = useAuthStore();
   const {setGoals, goals} = useGoalsStore();
   const [title, setTitle] = useState('');
@@ -44,44 +49,55 @@ export function CreateGoalScreen() {
     if (!session?.user.id) return;
     setLoading(true);
     try {
-      const goal = await goalsService.createGoal({
+      // Payload base — siempre funciona aunque no existan columnas extra
+      const payload: Parameters<typeof goalsService.createGoal>[0] = {
         title: title.trim(),
         target_amount: amount,
         image_url: null,
         owner_id: session.user.id,
-        category: category || null,
-        deadline: deadline || null,
-      });
+      };
+      // Agregar campos opcionales solo si tienen valor
+      if (category) payload.category = category;
+      if (deadline.length === 10) payload.deadline = deadline;
+
+      const goal = await goalsService.createGoal(payload);
+
       if (imageUri) {
-        try {goal.image_url = await goalsService.uploadImage(goal.id, imageUri);}
-        catch {/* silencioso */}
+        try {
+          goal.image_url = await goalsService.uploadImage(goal.id, imageUri);
+        } catch {
+          // imagen falla silenciosamente — la meta ya fue creada
+        }
       }
+
       setGoals([goal, ...goals]);
       setTitle(''); setTarget(''); setCategory(''); setDeadline(''); setImageUri(null);
-      Alert.alert('¡Listo!', 'Meta creada exitosamente 🎉');
+      Alert.alert('¡Listo!', 'Meta creada exitosamente 🎉', [
+        {text: 'OK', onPress: () => navigation.goBack()},
+      ]);
     } catch (e: unknown) {
-      Alert.alert('Error al crear meta', e instanceof Error ? e.message : String(e));
-    } finally {setLoading(false);}
+      Alert.alert('Error al crear meta', extractError(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-        {/* Imagen */}
         <TouchableOpacity style={s.imagePicker} onPress={pickImage} activeOpacity={0.8}>
           {imageUri ? (
             <Image source={{uri: imageUri}} style={s.imagePreview} resizeMode="cover" />
           ) : (
             <View style={s.imagePlaceholder}>
               <Text style={s.cameraIcon}>📷</Text>
-              <Text style={s.cameraText}>Agregar imagen</Text>
+              <Text style={s.cameraText}>Agregar imagen (opcional)</Text>
             </View>
           )}
         </TouchableOpacity>
 
         <Input label="Nombre de la meta" value={title} onChangeText={setTitle} placeholder="Ej: Viaje a Europa" />
 
-        {/* Monto */}
         <View style={s.amountWrap}>
           <Text style={s.amountLabel}>Monto objetivo (S/)</Text>
           <TextInput
@@ -94,8 +110,7 @@ export function CreateGoalScreen() {
           />
         </View>
 
-        {/* Categorías */}
-        <Text style={s.sectionLabel}>Categoría</Text>
+        <Text style={s.sectionLabel}>Categoría (opcional)</Text>
         <View style={s.categories}>
           {CATEGORIES.map(c => (
             <TouchableOpacity
@@ -109,7 +124,6 @@ export function CreateGoalScreen() {
           ))}
         </View>
 
-        {/* Fecha límite */}
         <View style={s.amountWrap}>
           <Text style={s.amountLabel}>Fecha límite (opcional)</Text>
           <TextInput

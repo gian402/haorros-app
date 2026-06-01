@@ -81,7 +81,11 @@ function TabsNavigator() {
         component={PlaceholderScreen}
         options={{
           tabBarLabel: '',
-          tabBarButton: () => <FABTabButton />,
+          tabBarButton: () => (
+            <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+              <FABTabButton />
+            </View>
+          ),
         }}
       />
       <Tab.Screen

@@ -10,6 +10,7 @@ import {useGoalsStore} from '../../store/goalsStore';
 import {useAuthStore} from '../../store/authStore';
 import {goalsService} from '../../services/goalsService';
 import {transactionsService} from '../../services/transactionsService';
+import {extractError} from '../../services/extractError';
 import {ProgressBar} from '../../components/ProgressBar';
 import {Button} from '../../components/Button';
 import {colors} from '../../theme/colors';
@@ -101,7 +102,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
       {text: 'Cancelar', style: 'cancel'},
       {text: 'Eliminar', style: 'destructive', onPress: async () => {
         try {await goalsService.deleteGoal(goalId); navigation.goBack();}
-        catch (e: unknown) {Alert.alert('Error', e instanceof Error ? e.message : 'Error al eliminar');}
+        catch (e: unknown) {Alert.alert('Error', extractError(e));}
       }},
     ]);
   };
@@ -124,7 +125,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
       setAddModal(false); setAmount('');
       if (activeGoal.current_amount + num >= activeGoal.target_amount) setConfetti(true);
     } catch (e: unknown) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Error');
+      Alert.alert('Error', extractError(e));
     } finally {setAdding(false);}
   };
 
@@ -166,7 +167,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
     try {
       await goalsService.updateGoal(goalId, {title: editTitle.trim(), target_amount: t});
       await load(); setEditModal(false);
-    } catch (e: unknown) {Alert.alert('Error', e instanceof Error ? e.message : 'Error');}
+    } catch (e: unknown) {Alert.alert('Error', extractError(e));}
   };
 
   if (loading || !activeGoal) {
