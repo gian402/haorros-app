@@ -2,6 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 export interface Goal {
@@ -44,9 +45,15 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
 };
 
+// Stack principal que envuelve tabs + CreateGoal como modal
+export type MainStackParamList = {
+  Tabs: undefined;
+  CreateGoal: undefined;
+};
+
 export type MainTabParamList = {
   Home: undefined;
-  CreateGoal: undefined;
+  NewGoal: undefined;
   Profile: undefined;
 };
 

@@ -1,7 +1,7 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
-  TextInput, Alert, ActivityIndicator, Image,
+  TextInput, Alert, ActivityIndicator, Image, ScrollView,
 } from 'react-native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {useAuthStore} from '../../store/authStore';
@@ -17,25 +17,54 @@ export function ProfileScreen() {
   const [newName, setNewName] = useState('');
   const [newPass, setNewPass] = useState('');
   const [saving, setSaving] = useState(false);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  const userId = session?.user.id ?? '';
   const name = session?.user.user_metadata?.name ?? 'Usuario';
   const email = session?.user.email ?? '';
-  const initial = name[0].toUpperCase();
+  const initial = name[0]?.toUpperCase() ?? 'U';
 
-  // Estadísticas
+  // Cargar avatar guardado en tabla users
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from('users').select('avatar_url').eq('id', userId).single()
+      .then(({data}) => { if (data?.avatar_url) setAvatarUrl(data.avatar_url); });
+  }, [userId]);
+
   const totalSaved = goals.reduce((s, g) => s + g.current_amount, 0);
   const completed = goals.filter(g => g.current_amount >= g.target_amount && g.target_amount > 0).length;
 
   const pickAvatar = async () => {
     const res = await launchImageLibrary({mediaType: 'photo', quality: 0.7});
-    if (res.assets?.[0]?.uri) setAvatarUri(res.assets[0].uri);
+    const uri = res.assets?.[0]?.uri;
+    if (!uri || !userId) return;
+    setUploadingAvatar(true);
+    try {
+      const ext = uri.split('.').pop()?.split('?')[0]?.toLowerCase() ?? 'jpg';
+      const path = `avatars/${userId}.${ext}`;
+      const formData = new FormData();
+      formData.append('file', {uri, name: `avatar.${ext}`, type: `image/${ext}`} as unknown as Blob);
+      const {error: upErr} = await supabase.storage
+        .from('avatars')
+        .upload(path, formData, {upsert: true});
+      if (upErr) throw upErr;
+      const {data: urlData} = supabase.storage.from('avatars').getPublicUrl(path);
+      // Guardar en tabla users para que otros la vean
+      await supabase.from('users').upsert({id: userId, avatar_url: urlData.publicUrl}, {onConflict: 'id'});
+      setAvatarUrl(urlData.publicUrl + '?t=' + Date.now()); // cache bust
+    } catch (e: unknown) {
+      Alert.alert('Error', e instanceof Error ? e.message : 'No se pudo subir la foto');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const saveName = async () => {
     if (!newName.trim()) return;
     setSaving(true);
     const {error} = await supabase.auth.updateUser({data: {name: newName.trim()}});
+    if (!error) await supabase.from('users').upsert({id: userId, name: newName.trim()}, {onConflict: 'id'});
     setSaving(false);
     if (error) {Alert.alert('Error', error.message); return;}
     Alert.alert('¡Listo!', 'Nombre actualizado');
@@ -53,18 +82,22 @@ export function ProfileScreen() {
   };
 
   return (
-    <View style={s.flex}>
+    <ScrollView style={s.flex} contentContainerStyle={s.content}>
       {/* Card perfil */}
       <View style={s.card}>
-        <TouchableOpacity onPress={pickAvatar} activeOpacity={0.8}>
-          {avatarUri ? (
-            <Image source={{uri: avatarUri}} style={s.avatar} />
+        <TouchableOpacity onPress={pickAvatar} activeOpacity={0.8} disabled={uploadingAvatar}>
+          {avatarUrl ? (
+            <Image source={{uri: avatarUrl}} style={s.avatar} />
           ) : (
             <View style={s.avatar}>
               <Text style={s.avatarText}>{initial}</Text>
             </View>
           )}
-          <View style={s.cameraOverlay}><Text style={s.cameraIcon}>📷</Text></View>
+          <View style={s.cameraOverlay}>
+            {uploadingAvatar
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : <Text style={s.cameraIcon}>📷</Text>}
+          </View>
         </TouchableOpacity>
         <Text style={s.name}>{name}</Text>
         <Text style={s.email}>{email}</Text>
@@ -114,14 +147,11 @@ export function ProfileScreen() {
         <View style={s.overlay}>
           <View style={s.sheet}>
             <Text style={s.sheetTitle}>Cambiar nombre</Text>
-            <TextInput
-              style={s.sheetInput}
-              value={newName}
-              onChangeText={setNewName}
-              placeholder="Tu nombre"
-              placeholderTextColor={colors.gray3}
-            />
-            {saving ? <ActivityIndicator color={colors.primary} /> : <TouchableOpacity style={s.saveBtn} onPress={saveName}><Text style={s.saveBtnText}>Guardar</Text></TouchableOpacity>}
+            <TextInput style={s.sheetInput} value={newName} onChangeText={setNewName}
+              placeholder="Tu nombre" placeholderTextColor={colors.gray3} />
+            {saving
+              ? <ActivityIndicator color={colors.primary} />
+              : <TouchableOpacity style={s.saveBtn} onPress={saveName}><Text style={s.saveBtnText}>Guardar</Text></TouchableOpacity>}
             <TouchableOpacity style={s.cancel} onPress={() => setNameModal(false)}>
               <Text style={s.cancelText}>Cancelar</Text>
             </TouchableOpacity>
@@ -134,27 +164,24 @@ export function ProfileScreen() {
         <View style={s.overlay}>
           <View style={s.sheet}>
             <Text style={s.sheetTitle}>Nueva contraseña</Text>
-            <TextInput
-              style={s.sheetInput}
-              value={newPass}
-              onChangeText={setNewPass}
-              placeholder="Mínimo 8 caracteres"
-              placeholderTextColor={colors.gray3}
-              secureTextEntry
-            />
-            {saving ? <ActivityIndicator color={colors.primary} /> : <TouchableOpacity style={s.saveBtn} onPress={savePass}><Text style={s.saveBtnText}>Guardar</Text></TouchableOpacity>}
+            <TextInput style={s.sheetInput} value={newPass} onChangeText={setNewPass}
+              placeholder="Mínimo 8 caracteres" placeholderTextColor={colors.gray3} secureTextEntry />
+            {saving
+              ? <ActivityIndicator color={colors.primary} />
+              : <TouchableOpacity style={s.saveBtn} onPress={savePass}><Text style={s.saveBtnText}>Guardar</Text></TouchableOpacity>}
             <TouchableOpacity style={s.cancel} onPress={() => setPassModal(false)}>
               <Text style={s.cancelText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  flex: {flex: 1, backgroundColor: colors.bg, padding: 16},
+  flex: {flex: 1, backgroundColor: colors.bg},
+  content: {padding: 16, paddingBottom: 40},
   card: {
     backgroundColor: colors.card, borderRadius: 24, padding: 24,
     alignItems: 'center', marginBottom: 16,
@@ -166,7 +193,11 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
   avatarText: {color: '#000', fontSize: 34, fontWeight: '800'},
-  cameraOverlay: {position: 'absolute', bottom: 12, right: -4, backgroundColor: colors.surface, borderRadius: 12, padding: 4, borderWidth: 1, borderColor: colors.border},
+  cameraOverlay: {
+    position: 'absolute', bottom: 12, right: -4,
+    backgroundColor: colors.surface, borderRadius: 12, padding: 4,
+    borderWidth: 1, borderColor: colors.border,
+  },
   cameraIcon: {fontSize: 14},
   name: {color: colors.white, fontSize: 20, fontWeight: '700'},
   email: {color: colors.gray2, fontSize: 13, marginTop: 4},
