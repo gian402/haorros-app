@@ -3,15 +3,14 @@ import {Goal} from '../supabase/types';
 
 export const goalsService = {
   async getMyGoals(userId: string): Promise<Goal[]> {
-    // Metas propias (sin JOIN a goal_members para evitar recursión RLS)
+    // Query goals SIN JOIN a goal_members (evita recursión RLS)
     const {data: owned, error: e1} = await supabase
       .from('goals')
-      .select('*, members:goal_members(id, user_id, user:users(id, name, email))')
+      .select('id, title, target_amount, current_amount, image_url, owner_id, created_at, category, deadline')
       .eq('owner_id', userId)
       .order('created_at', {ascending: false});
     if (e1) throw e1;
 
-    // IDs de metas donde soy miembro
     const {data: memberRows, error: e2} = await supabase
       .from('goal_members')
       .select('goal_id')
@@ -23,7 +22,7 @@ export const goalsService = {
     if (memberGoalIds.length > 0) {
       const {data, error: e3} = await supabase
         .from('goals')
-        .select('*, members:goal_members(id, user_id, user:users(id, name, email))')
+        .select('id, title, target_amount, current_amount, image_url, owner_id, created_at, category, deadline')
         .in('id', memberGoalIds)
         .order('created_at', {ascending: false});
       if (e3) throw e3;
@@ -32,27 +31,49 @@ export const goalsService = {
 
     const all = [...(owned ?? []), ...shared];
     const seen = new Set<string>();
-    return all.filter(g => seen.has(g.id) ? false : (seen.add(g.id), true));
+    const unique = all.filter(g => seen.has(g.id) ? false : (seen.add(g.id), true));
+
+    // Cargar members por separado para cada meta
+    const withMembers = await Promise.all(unique.map(async g => {
+      const {data: members} = await supabase
+        .from('goal_members')
+        .select('id, user_id, user:users(id, name, email)')
+        .eq('goal_id', g.id);
+      return {...g, members: members ?? []};
+    }));
+    return withMembers;
   },
 
   async getGoal(goalId: string): Promise<Goal> {
     const {data, error} = await supabase
       .from('goals')
-      .select('*, members:goal_members(id, user_id, user:users(id, name, email))')
+      .select('id, title, target_amount, current_amount, image_url, owner_id, created_at, category, deadline')
       .eq('id', goalId)
       .single();
     if (error) throw error;
-    return data;
+    const {data: members} = await supabase
+      .from('goal_members')
+      .select('id, user_id, user:users(id, name, email)')
+      .eq('goal_id', goalId);
+    return {...data, members: members ?? []};
   },
 
   async createGoal(payload: Omit<Goal, 'id' | 'created_at' | 'current_amount' | 'members'>): Promise<Goal> {
-    // Insertar sin SELECT de members para evitar recursión RLS en goal_members
-    const {data, error} = await supabase
+    // INSERT sin .select() para evitar que goals_select consulte goal_members (recursión)
+    const {error} = await supabase
       .from('goals')
-      .insert({...payload, current_amount: 0})
-      .select('id, title, target_amount, current_amount, image_url, owner_id, created_at, category, deadline')
-      .single();
+      .insert({...payload, current_amount: 0});
     if (error) throw error;
+    // Obtener la meta recién creada por owner_id + title (evita JOIN a goal_members)
+    const {data, error: e2} = await supabase
+      .from('goals')
+      .select('id, title, target_amount, current_amount, image_url, owner_id, created_at, category, deadline')
+      .eq('owner_id', payload.owner_id)
+      .eq('title', payload.title)
+      .order('created_at', {ascending: false})
+      .limit(1)
+      .single();
+    if (e2) throw e2;
     return {...data, members: []};
   },
 
