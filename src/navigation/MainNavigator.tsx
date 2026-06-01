@@ -37,7 +37,7 @@ function HomeStackNavigator() {
 // Pantalla placeholder para el tab central (nunca se renderiza)
 function PlaceholderScreen() { return <View style={{flex:1, backgroundColor: colors.bg}} />; }
 
-function FABTabButton({onPress}: {onPress?: () => void}) {
+function FABTabButton() {
   const nav = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   return (
     <TouchableOpacity
@@ -52,6 +52,7 @@ function FABTabButton({onPress}: {onPress?: () => void}) {
 function TabsNavigator() {
   return (
     <Tab.Navigator
+      initialRouteName="Home"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -65,6 +66,7 @@ function TabsNavigator() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.gray3,
         tabBarLabelStyle: {fontSize: 11, fontWeight: '600'},
+        tabBarShowLabel: true,
       }}>
       <Tab.Screen
         name="Home"
@@ -79,7 +81,7 @@ function TabsNavigator() {
         component={PlaceholderScreen}
         options={{
           tabBarLabel: '',
-          tabBarButton: (props) => <FABTabButton {...props} />,
+          tabBarButton: () => <FABTabButton />,
         }}
       />
       <Tab.Screen
