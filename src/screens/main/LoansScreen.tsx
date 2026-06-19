@@ -9,7 +9,8 @@ import {useAuthStore} from '../../store/authStore';
 import {Loan} from '../../supabase/types';
 
 export function LoansScreen() {
-  const user = useAuthStore(s => s.user);
+  const session = useAuthStore(s => s.session);
+  const userId = session?.user?.id;
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [desc, setDesc] = useState('');
@@ -17,16 +18,16 @@ export function LoansScreen() {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     try {
       setLoading(true);
-      setLoans(await loansService.getLoans(user.id));
+      setLoans(await loansService.getLoans(userId));
     } catch (e: any) {
       Alert.alert('Error al cargar', e.message);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -39,11 +40,11 @@ export function LoansScreen() {
       Alert.alert('Datos inválidos', 'Ingresa una descripción y un monto mayor a 0.');
       return;
     }
-    if (!user) { Alert.alert('Error', 'No hay sesión activa.'); return; }
+    if (!userId) { Alert.alert('Error', 'No hay sesión activa.'); return; }
     setSaving(true);
     try {
       const newLoan = await loansService.addLoan({
-        user_id: user.id,
+        user_id: userId,
         description: desc.trim(),
         amount: num,
         paid: false,

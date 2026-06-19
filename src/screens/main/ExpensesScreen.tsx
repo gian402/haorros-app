@@ -11,7 +11,8 @@ import {Expense} from '../../supabase/types';
 const CATEGORIES = ['Comida', 'Transporte', 'Ropa', 'Salud', 'Ocio', 'Otro'];
 
 export function ExpensesScreen() {
-  const user = useAuthStore(s => s.user);
+  const session = useAuthStore(s => s.session);
+  const userId = session?.user?.id;
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [desc, setDesc] = useState('');
@@ -20,16 +21,16 @@ export function ExpensesScreen() {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     try {
       setLoading(true);
-      setExpenses(await expensesService.getExpenses(user.id));
+      setExpenses(await expensesService.getExpenses(userId));
     } catch (e: any) {
       Alert.alert('Error al cargar', e.message);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -41,11 +42,11 @@ export function ExpensesScreen() {
       Alert.alert('Datos inválidos', 'Ingresa una descripción y un monto mayor a 0.');
       return;
     }
-    if (!user) { Alert.alert('Error', 'No hay sesión activa.'); return; }
+    if (!userId) { Alert.alert('Error', 'No hay sesión activa.'); return; }
     setSaving(true);
     try {
       const newExp = await expensesService.addExpense({
-        user_id: user.id,
+        user_id: userId,
         description: desc.trim(),
         amount: num,
         category,
