@@ -164,9 +164,20 @@ export function HomeScreen({navigation}: Props) {
             </View>
           )
         }
-        renderItem={({item, index}) => (
-          <GoalCard goal={item} index={index} onPress={() => navigation.navigate('GoalDetail', {goalId: item.id})} />
-        )}
+        renderItem={({item, index}) => {
+          // Distribuye gastos+préstamos proporcionalmente según el peso de cada meta
+          const deduct = totalExpenses + totalPendingLoans;
+          const weight = totalSaved > 0 ? item.current_amount / totalSaved : 0;
+          const netAmount = item.current_amount - deduct * weight;
+          return (
+            <GoalCard
+              goal={item}
+              index={index}
+              netAmount={netAmount}
+              onPress={() => navigation.navigate('GoalDetail', {goalId: item.id})}
+            />
+          );
+        }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); load();}} tintColor={colors.primary} />
         }

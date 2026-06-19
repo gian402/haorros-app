@@ -8,6 +8,7 @@ interface Props {
   goal: Goal;
   onPress: () => void;
   index?: number;
+  netAmount?: number;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -19,8 +20,9 @@ function daysLeft(deadline: string): number {
   return Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
 }
 
-export function GoalCard({goal, onPress, index = 0}: Props) {
-  const progress = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
+export function GoalCard({goal, onPress, index = 0, netAmount}: Props) {
+  const displayAmount = netAmount !== undefined ? Math.max(0, netAmount) : goal.current_amount;
+  const progress = goal.target_amount > 0 ? (displayAmount / goal.target_amount) * 100 : 0;
   const memberCount = goal.members?.length ?? 0;
   const days = goal.deadline ? daysLeft(goal.deadline) : null;
   const catIcon = goal.category ? (CATEGORY_ICONS[goal.category] ?? '🎯') : '🎯';
@@ -79,7 +81,7 @@ export function GoalCard({goal, onPress, index = 0}: Props) {
             )}
           </View>
 
-          <ProgressBar progress={progress} current={goal.current_amount} target={goal.target_amount} />
+          <ProgressBar progress={progress} current={displayAmount} target={goal.target_amount} />
         </View>
       </TouchableOpacity>
     </Animated.View>
