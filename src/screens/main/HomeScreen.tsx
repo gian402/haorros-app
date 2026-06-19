@@ -11,6 +11,9 @@ import {useNetInfo} from '../../hooks/useNetInfo';
 import {NoInternetBanner} from '../../components/NoInternetBanner';
 import {colors} from '../../theme/colors';
 
+import {expensesService} from '../../services/expensesService';
+import {loansService} from '../../services/loansService';
+
 type Props = {navigation: NativeStackNavigationProp<HomeStackParamList, 'GoalList'>};
 
 function SkeletonCard() {
@@ -54,6 +57,8 @@ export function HomeScreen({navigation}: Props) {
   const {session} = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [totalPendingLoans, setTotalPendingLoans] = useState(0);
   const isConnected = useNetInfo();
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -62,8 +67,14 @@ export function HomeScreen({navigation}: Props) {
   const load = useCallback(async () => {
     if (!session?.user.id) return;
     try {
-      const data = await goalsService.getMyGoals(session.user.id);
+      const [data, expenses, loans] = await Promise.all([
+        goalsService.getMyGoals(session.user.id),
+        expensesService.getExpenses(session.user.id),
+        loansService.getLoans(session.user.id),
+      ]);
       setGoals(data);
+      setTotalExpenses(expenses.reduce((sum, e) => sum + e.amount, 0));
+      setTotalPendingLoans(loans.filter(l => !l.paid).reduce((sum, l) => sum + l.amount, 0));
     } finally {setLoading(false); setRefreshing(false);}
   }, [session, setGoals]);
 
@@ -75,6 +86,7 @@ export function HomeScreen({navigation}: Props) {
   useFocusEffect(useCallback(() => {load();}, [load]));
 
   const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0);
+  const netTotal = totalSaved - totalExpenses - totalPendingLoans;
   const completed = goals.filter(g => g.current_amount >= g.target_amount && g.target_amount > 0).length;
 
   const Header = (
@@ -97,7 +109,15 @@ export function HomeScreen({navigation}: Props) {
         <View style={s.statsCircle2} />
 
         <Text style={s.statsLabel}>TOTAL AHORRADO</Text>
-        <Text style={s.statsAmount}>S/ {totalSaved.toLocaleString('es-PE', {minimumFractionDigits: 2})}</Text>
+        <Text style={s.statsAmount}>S/ {netTotal.toLocaleString('es-PE', {minimumFractionDigits: 2})}</Text>
+
+        {(totalExpenses > 0 || totalPendingLoans > 0) && (
+          <View style={s.desglose}>
+            <Text style={s.desgloseBase}>Ahorro: S/ {totalSaved.toLocaleString('es-PE', {minimumFractionDigits: 2})}</Text>
+            {totalExpenses > 0 && <Text style={s.desgloseRest}>- Gastos: S/ {totalExpenses.toFixed(2)}</Text>}
+            {totalPendingLoans > 0 && <Text style={s.desgloseRest}>- Préstamos: S/ {totalPendingLoans.toFixed(2)}</Text>}
+          </View>
+        )}
 
         <View style={s.statsDivider} />
 
@@ -188,6 +208,9 @@ const s = StyleSheet.create({
   },
   statsLabel: {color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 6},
   statsAmount: {color: colors.white, fontSize: 36, fontWeight: '800', letterSpacing: -1},
+  desglose: {marginTop: 6, gap: 2},
+  desgloseBase: {color: colors.gray2, fontSize: 12},
+  desgloseRest: {color: colors.danger, fontSize: 12},
   statsDivider: {height: 1, backgroundColor: colors.border, marginVertical: 16},
   statsRow: {flexDirection: 'row', justifyContent: 'space-around'},
   statItem: {alignItems: 'center'},
