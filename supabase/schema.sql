@@ -100,3 +100,36 @@ insert into storage.buckets (id, name, public) values ('goal-images', 'goal-imag
 create policy "Public read goal images" on storage.objects for select using (bucket_id = 'goal-images');
 create policy "Auth users upload goal images" on storage.objects for insert
   with check (bucket_id = 'goal-images' and auth.role() = 'authenticated');
+
+
+-- ─── GASTOS ───────────────────────────────────────────────
+create table if not exists public.expenses (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references public.users(id) on delete cascade not null,
+  description text not null,
+  amount      numeric(12,2) not null check (amount > 0),
+  category    text,
+  created_at  timestamptz default now() not null
+);
+
+alter table public.expenses enable row level security;
+
+create policy "expenses_owner" on public.expenses
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+-- ─── PRÉSTAMOS ────────────────────────────────────────────
+create table if not exists public.loans (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references public.users(id) on delete cascade not null,
+  description text not null,
+  amount      numeric(12,2) not null check (amount > 0),
+  paid        boolean default false not null,
+  created_at  timestamptz default now() not null
+);
+
+alter table public.loans enable row level security;
+
+create policy "loans_owner" on public.loans
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());

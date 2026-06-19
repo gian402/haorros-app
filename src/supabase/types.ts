@@ -34,6 +34,24 @@ export interface Transaction {
   user?: User;
 }
 
+export interface Expense {
+  id: string;
+  user_id: string;
+  description: string;
+  amount: number;
+  category?: string | null;
+  created_at: string;
+}
+
+export interface Loan {
+  id: string;
+  user_id: string;
+  description: string;
+  amount: number;
+  paid: boolean;
+  created_at: string;
+}
+
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
@@ -53,7 +71,9 @@ export type MainStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
+  Expenses: undefined;
   NewGoal: undefined;
+  Loans: undefined;
   Profile: undefined;
 };
 

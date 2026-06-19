@@ -11,6 +11,8 @@ import {GoalDetailScreen} from '../screens/main/GoalDetailScreen';
 import {HistoryScreen} from '../screens/main/HistoryScreen';
 import {CreateGoalScreen} from '../screens/main/CreateGoalScreen';
 import {ProfileScreen} from '../screens/main/ProfileScreen';
+import {ExpensesScreen} from '../screens/main/ExpensesScreen';
+import {LoansScreen} from '../screens/main/LoansScreen';
 import {colors} from '../theme/colors';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -34,8 +36,7 @@ function HomeStackNavigator() {
   );
 }
 
-// Pantalla placeholder para el tab central (nunca se renderiza)
-function PlaceholderScreen() { return <View style={{flex:1, backgroundColor: colors.bg}} />; }
+function PlaceholderScreen() { return <View style={{flex: 1, backgroundColor: colors.bg}} />; }
 
 function FABTabButton() {
   const nav = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
@@ -70,7 +71,7 @@ function TabsNavigator() {
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.gray3,
-        tabBarLabelStyle: {fontSize: 11, fontWeight: '600'},
+        tabBarLabelStyle: {fontSize: 10, fontWeight: '600'},
         tabBarShowLabel: true,
       }}>
       <Tab.Screen
@@ -79,6 +80,17 @@ function TabsNavigator() {
         options={{
           tabBarLabel: 'Inicio',
           tabBarIcon: ({color, size}) => <Icon name="home" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Expenses"
+        component={ExpensesScreen}
+        options={{
+          tabBarLabel: 'Gastos',
+          headerShown: true,
+          ...headerOpts,
+          title: 'Gastos 💸',
+          tabBarIcon: ({color, size}) => <Icon name="trending-down" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -91,6 +103,17 @@ function TabsNavigator() {
               <FABTabButton />
             </View>
           ),
+        }}
+      />
+      <Tab.Screen
+        name="Loans"
+        component={LoansScreen}
+        options={{
+          tabBarLabel: 'Préstamos',
+          headerShown: true,
+          ...headerOpts,
+          title: 'Préstamos 🤝',
+          tabBarIcon: ({color, size}) => <Icon name="credit-card" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -128,7 +151,7 @@ export function MainNavigator() {
 
 const s = StyleSheet.create({
   fab: {
-    width: 58, height: 58, borderRadius: 29,
+    width: 54, height: 54, borderRadius: 27,
     backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 6,
@@ -138,5 +161,5 @@ const s = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  fabIcon: {color: '#000', fontSize: 30, fontWeight: '700', lineHeight: 34},
+  fabIcon: {color: '#000', fontSize: 28, fontWeight: '700', lineHeight: 32},
 });
