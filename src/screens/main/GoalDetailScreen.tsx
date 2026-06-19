@@ -10,6 +10,8 @@ import {useGoalsStore} from '../../store/goalsStore';
 import {useAuthStore} from '../../store/authStore';
 import {goalsService} from '../../services/goalsService';
 import {transactionsService} from '../../services/transactionsService';
+import {expensesService} from '../../services/expensesService';
+import {loansService} from '../../services/loansService';
 import {extractError} from '../../services/extractError';
 import {ProgressBar} from '../../components/ProgressBar';
 import {Button} from '../../components/Button';
@@ -77,16 +79,25 @@ export function GoalDetailScreen({navigation, route}: Props) {
   const [shareEmail, setShareEmail] = useState('');
   const [adding, setAdding] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [deduction, setDeduction] = useState(0);
   // edit fields
   const [editTitle, setEditTitle] = useState('');
   const [editTarget, setEditTarget] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const goal = await goalsService.getGoal(goalId);
+      const userId = session?.user?.id;
+      const [goal, expenses, loans] = await Promise.all([
+        goalsService.getGoal(goalId),
+        userId ? expensesService.getExpenses(userId) : Promise.resolve([]),
+        userId ? loansService.getLoans(userId) : Promise.resolve([]),
+      ]);
       setActiveGoal(goal);
+      const totalExp = expenses.reduce((s, e) => s + e.amount, 0);
+      const totalLoans = (loans as any[]).filter(l => !l.paid).reduce((s: number, l: any) => s + l.amount, 0);
+      setDeduction(totalExp + totalLoans);
     } finally {setLoading(false);}
-  }, [goalId, setActiveGoal]);
+  }, [goalId, setActiveGoal, session]);
 
   useEffect(() => {
     load();
@@ -174,7 +185,8 @@ export function GoalDetailScreen({navigation, route}: Props) {
     return <View style={s.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
 
-  const progress = activeGoal.target_amount > 0 ? (activeGoal.current_amount / activeGoal.target_amount) * 100 : 0;
+  const netAmount = Math.max(0, activeGoal.current_amount - deduction);
+  const progress = activeGoal.target_amount > 0 ? (netAmount / activeGoal.target_amount) * 100 : 0;
   const days = activeGoal.deadline ? daysLeft(activeGoal.deadline) : null;
 
   return (
@@ -205,7 +217,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
           )}
 
           <View style={s.progressCard}>
-            <ProgressBar progress={progress} current={activeGoal.current_amount} target={activeGoal.target_amount} />
+            <ProgressBar progress={progress} current={netAmount} target={activeGoal.target_amount} />
           </View>
 
           {progress >= 100 && (
