@@ -5,11 +5,11 @@ import {
 } from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RouteProp} from '@react-navigation/native';
-import {HomeStackParamList} from '../../supabase/types';
+import {HomeStackParamList} from '../../types';
 import {useGoalsStore} from '../../store/goalsStore';
 import {useAuthStore} from '../../store/authStore';
 import {goalsService} from '../../services/goalsService';
-import {transactionsService} from '../../services/transactionsService';
+import {transactionsService, newRequestId} from '../../services/transactionsService';
 import {expensesService} from '../../services/expensesService';
 import {loansService} from '../../services/loansService';
 import {extractError} from '../../services/extractError';
@@ -78,6 +78,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
   const [amount, setAmount] = useState('');
   const [shareEmail, setShareEmail] = useState('');
   const [adding, setAdding] = useState(false);
+  const pendingDeposit = useRef<{amount: number; id: string} | null>(null);
   const [confetti, setConfetti] = useState(false);
   const [deduction, setDeduction] = useState(0);
   // edit fields
@@ -96,7 +97,8 @@ export function GoalDetailScreen({navigation, route}: Props) {
       const totalExp = expenses.reduce((s, e) => s + e.amount, 0);
       const totalLoans = (loans as any[]).filter(l => !l.paid).reduce((s: number, l: any) => s + l.amount, 0);
       setDeduction(totalExp + totalLoans);
-    } finally {setLoading(false);}
+    } catch (e: unknown) {setActiveGoal(null); Alert.alert('Error', extractError(e));}
+    finally {setLoading(false);}
   }, [goalId, setActiveGoal, session]);
 
   useEffect(() => {
@@ -124,13 +126,17 @@ export function GoalDetailScreen({navigation, route}: Props) {
     if (!session?.user.id || !activeGoal) return;
     // Tarea 6: validar que no supere lo que falta
     const remaining = activeGoal.target_amount - activeGoal.current_amount;
-    if (num > remaining) {
+    if (num > remaining && !(pendingDeposit.current?.amount === num)) {
       Alert.alert('Monto excedido', `Solo faltan S/ ${remaining.toLocaleString()} para completar la meta`);
       return;
     }
     setAdding(true);
     try {
-      await transactionsService.addAmount(goalId, session.user.id, num);
+      if (!pendingDeposit.current || pendingDeposit.current.amount !== num) {
+        pendingDeposit.current = {amount: num, id: newRequestId()};
+      }
+      await transactionsService.addAmount(goalId, session.user.id, num, pendingDeposit.current.id);
+      pendingDeposit.current = null;
       Vibration.vibrate(60);
       await load();
       setAddModal(false); setAmount('');
@@ -143,10 +149,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
   const handleShare = async () => {
     if (!shareEmail.trim()) return;
     try {
-      const {supabase} = await import('../../supabase/client');
-      const {data} = await supabase.from('users').select('id').eq('email', shareEmail.trim()).single();
-      if (!data) {Alert.alert('Error', 'Usuario no encontrado'); return;}
-      await goalsService.addMember(goalId, data.id);
+      await goalsService.addMember(goalId, shareEmail.trim());
       await load();
       Alert.alert('¡Listo!', 'Usuario agregado a la meta');
       setShareModal(false); setShareEmail('');
@@ -181,10 +184,14 @@ export function GoalDetailScreen({navigation, route}: Props) {
     } catch (e: unknown) {Alert.alert('Error', extractError(e));}
   };
 
-  if (loading || !activeGoal) {
+  if (loading) {
     return <View style={s.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
 
+  if (!activeGoal) {
+    return <View style={s.center}><Text style={{color: colors.white}}>No se pudo cargar la meta.</Text><Button title="Reintentar" onPress={load} /></View>;
+  }
+  const isOwner = session?.user.id === activeGoal.owner_id;
   const netAmount = Math.max(0, activeGoal.current_amount - deduction);
   const progress = activeGoal.target_amount > 0 ? (netAmount / activeGoal.target_amount) * 100 : 0;
   const days = activeGoal.deadline ? daysLeft(activeGoal.deadline) : null;
@@ -202,7 +209,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
         <View style={s.body}>
           <View style={s.titleRow}>
             <Text style={s.title}>{activeGoal.title}</Text>
-            <TouchableOpacity onPress={openEdit} style={s.editBtn}>
+            <TouchableOpacity disabled={!isOwner} onPress={openEdit} style={s.editBtn}>
               <Text style={s.editBtnText}>✏️</Text>
             </TouchableOpacity>
           </View>
@@ -228,7 +235,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
 
           <View style={s.actions}>
             <View style={s.actionBtn}>
-              <Button title="+ Agregar" onPress={() => setAddModal(true)} disabled={progress >= 100} />
+              <Button title="+ Agregar" onPress={() => setAddModal(true)} disabled={activeGoal.current_amount >= activeGoal.target_amount} />
             </View>
             <View style={s.actionBtn}>
               <Button title="Historial" onPress={() => navigation.navigate('History', {goalId})} variant="outline" />
@@ -236,7 +243,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
           </View>
 
           {/* Miembros */}
-          <TouchableOpacity style={s.shareRow} onPress={() => setShareModal(true)}>
+          <TouchableOpacity style={s.shareRow} disabled={!isOwner} onPress={() => setShareModal(true)}>
             <Text style={s.shareIcon}>👥</Text>
             <View style={s.shareInfo}>
               <Text style={s.shareTitle}>Compartir meta</Text>
@@ -263,7 +270,7 @@ export function GoalDetailScreen({navigation, route}: Props) {
             </View>
           )}
 
-          <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
+          <TouchableOpacity style={s.deleteBtn} disabled={!isOwner} onPress={handleDelete}>
             <Text style={s.deleteTxt}>🗑  Eliminar meta</Text>
           </TouchableOpacity>
         </View>

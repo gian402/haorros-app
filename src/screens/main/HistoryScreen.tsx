@@ -1,7 +1,7 @@
 import React, {useEffect, useState, useCallback, useMemo} from 'react';
-import {View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput} from 'react-native';
+import {View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput, Alert} from 'react-native';
 import {RouteProp} from '@react-navigation/native';
-import {HomeStackParamList, Transaction} from '../../supabase/types';
+import {HomeStackParamList, Transaction} from '../../types';
 import {transactionsService} from '../../services/transactionsService';
 import {useGoalsStore} from '../../store/goalsStore';
 import {colors} from '../../theme/colors';
@@ -26,7 +26,7 @@ function TxItem({tx}: {tx: Transaction}) {
 
 export function HistoryScreen({route}: Props) {
   const {goalId} = route.params;
-  const {transactions, setTransactions, addTransaction} = useGoalsStore();
+  const {transactions, setTransactions} = useGoalsStore();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -35,14 +35,15 @@ export function HistoryScreen({route}: Props) {
     try {
       const data = await transactionsService.getHistory(goalId);
       setTransactions(data);
-    } finally {setLoading(false);}
+    } catch (e: unknown) {setTransactions([]); Alert.alert('Error', e instanceof Error ? e.message : 'No se pudo cargar el historial');}
+    finally {setLoading(false);}
   }, [goalId, setTransactions]);
 
   useEffect(() => {
     load();
-    const ch = transactionsService.subscribeToTransactions(goalId, addTransaction);
+    const ch = transactionsService.subscribeToTransactions(goalId, setTransactions);
     return () => {ch.unsubscribe();};
-  }, [goalId, load, addTransaction]);
+  }, [goalId, load, setTransactions]);
 
   const filtered = useMemo(() => {
     return transactions.filter(tx => {

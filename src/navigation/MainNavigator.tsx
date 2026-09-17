@@ -5,7 +5,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from '@react-native-vector-icons/feather';
-import {MainTabParamList, MainStackParamList, HomeStackParamList} from '../supabase/types';
+import {MainTabParamList, MainStackParamList, HomeStackParamList} from '../types';
 import {HomeScreen} from '../screens/main/HomeScreen';
 import {GoalDetailScreen} from '../screens/main/GoalDetailScreen';
 import {HistoryScreen} from '../screens/main/HistoryScreen';

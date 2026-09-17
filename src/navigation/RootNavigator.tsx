@@ -7,7 +7,7 @@ import {AuthNavigator} from './AuthNavigator';
 import {MainNavigator} from './MainNavigator';
 import {SplashScreen} from '../screens/auth/SplashScreen';
 import {OnboardingScreen} from '../screens/auth/OnboardingScreen';
-import {RootStackParamList} from '../supabase/types';
+import {RootStackParamList} from '../types';
 import {colors} from '../theme/colors';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

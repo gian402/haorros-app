@@ -6,7 +6,7 @@ import {
 import {launchImageLibrary} from 'react-native-image-picker';
 import {useAuthStore} from '../../store/authStore';
 import {useGoalsStore} from '../../store/goalsStore';
-import {supabase} from '../../supabase/client';
+import {authService} from '../../services/authService';
 import {extractError} from '../../services/extractError';
 import {colors} from '../../theme/colors';
 
@@ -17,6 +17,7 @@ export function ProfileScreen() {
   const [passModal, setPassModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPass, setNewPass] = useState('');
+  const [currentPass, setCurrentPass] = useState('');
   const [saving, setSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -26,16 +27,11 @@ export function ProfileScreen() {
   const email = session?.user.email ?? '';
   const initial = name[0]?.toUpperCase() ?? 'U';
 
-  // Cargar avatar guardado en tabla users
   useEffect(() => {
-    if (!userId) return;
-    supabase.from('users').select('avatar_url').eq('id', userId).single()
-      .then(({data}) => {
-        if (data?.avatar_url) setAvatarUrl(data.avatar_url + '?t=' + Date.now());
-      });
-  }, [userId]);
+    setAvatarUrl(session?.user.avatar_url ?? null);
+  }, [session?.user.avatar_url]);
 
-  const totalSaved = goals.reduce((s, g) => s + g.current_amount, 0);
+  const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0);
   const completed = goals.filter(g => g.current_amount >= g.target_amount && g.target_amount > 0).length;
 
   const pickAvatar = async () => {
@@ -43,55 +39,34 @@ export function ProfileScreen() {
     const uri = res.assets?.[0]?.uri;
     if (!uri || !userId) return;
     setUploadingAvatar(true);
-    try {
-      const ext = uri.split('.').pop()?.split('?')[0]?.toLowerCase() ?? 'jpg';
-      const path = `${userId}.${ext}`;
-      const formData = new FormData();
-      formData.append('file', {uri, name: `avatar.${ext}`, type: `image/${ext}`} as unknown as Blob);
-
-      // Intentar crear el bucket si no existe
-      await supabase.storage.createBucket('avatars', {public: true}).catch(() => {/* ya existe */});
-
-      const {error: upErr} = await supabase.storage
-        .from('avatars')
-        .upload(path, formData, {upsert: true});
-      if (upErr) throw upErr;
-
-      const {data: urlData} = supabase.storage.from('avatars').getPublicUrl(path);
-      const publicUrl = urlData.publicUrl + '?t=' + Date.now();
-
-      // Guardar en tabla users para que otros la vean
-      await supabase.from('users').upsert(
-        {id: userId, name, email, avatar_url: urlData.publicUrl},
-        {onConflict: 'id'}
-      );
-      setAvatarUrl(publicUrl);
-    } catch (e: unknown) {
-      Alert.alert('Error al subir foto', extractError(e));
-    } finally {
-      setUploadingAvatar(false);
-    }
+    try {setAvatarUrl(await authService.uploadAvatar(uri));}
+    catch (e: unknown) {Alert.alert('Error al subir foto', extractError(e));}
+    finally {setUploadingAvatar(false);}
   };
 
   const saveName = async () => {
     if (!newName.trim()) return;
     setSaving(true);
-    const {error} = await supabase.auth.updateUser({data: {name: newName.trim()}});
-    if (!error) await supabase.from('users').upsert({id: userId, name: newName.trim()}, {onConflict: 'id'});
-    setSaving(false);
-    if (error) {Alert.alert('Error', error.message); return;}
-    Alert.alert('¡Listo!', 'Nombre actualizado');
-    setNameModal(false);
+    try {
+      await authService.updateName(newName.trim());
+      setNameModal(false);
+      Alert.alert('¡Listo!', 'Nombre actualizado');
+    } catch (e: unknown) {Alert.alert('Error', extractError(e));}
+    finally {setSaving(false);}
   };
 
   const savePass = async () => {
-    if (newPass.length < 8) {Alert.alert('Error', 'Mínimo 8 caracteres'); return;}
+    if (!currentPass || newPass.length < 8) {
+      Alert.alert('Error', 'Ingresa tu contraseña actual y una nueva de al menos 8 caracteres.');
+      return;
+    }
     setSaving(true);
-    const {error} = await supabase.auth.updateUser({password: newPass});
-    setSaving(false);
-    if (error) {Alert.alert('Error', error.message); return;}
-    Alert.alert('¡Listo!', 'Contraseña actualizada');
-    setPassModal(false); setNewPass('');
+    try {
+      await authService.changePassword(currentPass, newPass);
+      setPassModal(false); setNewPass(''); setCurrentPass('');
+      Alert.alert('¡Listo!', 'Contraseña actualizada');
+    } catch (e: unknown) {Alert.alert('Error', extractError(e));}
+    finally {setSaving(false);}
   };
 
   return (
@@ -148,7 +123,7 @@ export function ProfileScreen() {
           <Text style={s.rowArrow}>›</Text>
         </TouchableOpacity>
         <View style={s.divider} />
-        <TouchableOpacity style={s.row} onPress={signOut}>
+        <TouchableOpacity style={s.row} onPress={() => {signOut().catch(e => Alert.alert('Sesión cerrada en este teléfono', extractError(e)));}}>
           <Text style={s.rowIcon}>🚪</Text>
           <Text style={[s.rowLabel, {color: colors.danger}]}>Cerrar sesión</Text>
           <Text style={s.rowArrow}>›</Text>
@@ -177,6 +152,8 @@ export function ProfileScreen() {
         <View style={s.overlay}>
           <View style={s.sheet}>
             <Text style={s.sheetTitle}>Nueva contraseña</Text>
+            <TextInput style={s.sheetInput} value={currentPass} onChangeText={setCurrentPass}
+              placeholder="Contraseña actual" placeholderTextColor={colors.gray3} secureTextEntry />
             <TextInput style={s.sheetInput} value={newPass} onChangeText={setNewPass}
               placeholder="Mínimo 8 caracteres" placeholderTextColor={colors.gray3} secureTextEntry />
             {saving

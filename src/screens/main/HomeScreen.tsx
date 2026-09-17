@@ -2,7 +2,7 @@ import React, {useEffect, useCallback, useState, useRef} from 'react';
 import {View, Text, FlatList, RefreshControl, StyleSheet, Animated} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useFocusEffect} from '@react-navigation/native';
-import {HomeStackParamList} from '../../supabase/types';
+import {HomeStackParamList} from '../../types';
 import {useGoalsStore} from '../../store/goalsStore';
 import {useAuthStore} from '../../store/authStore';
 import {goalsService} from '../../services/goalsService';

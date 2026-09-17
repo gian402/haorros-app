@@ -1,6 +1,6 @@
 import React, {useRef, useEffect} from 'react';
 import {TouchableOpacity, View, Text, Image, StyleSheet, Animated} from 'react-native';
-import {Goal} from '../supabase/types';
+import {Goal} from '../types';
 import {ProgressBar} from './ProgressBar';
 import {colors} from '../theme/colors';
 

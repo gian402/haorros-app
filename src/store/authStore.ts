@@ -1,7 +1,7 @@
 import {create} from 'zustand';
-import {Session} from '@supabase/supabase-js';
-import {User} from '../supabase/types';
-import {supabase} from '../supabase/client';
+import {User} from '../types';
+import {api, ApiError, Session, onSessionChange, restoreSession, saveSession, updateSessionUser} from '../api/client';
+import {useGoalsStore} from './goalsStore';
 
 interface AuthState {
   session: Session | null;
@@ -12,31 +12,33 @@ interface AuthState {
   signOut: () => Promise<void>;
   init: () => void;
 }
-
+let initialized = false;
 export const useAuthStore = create<AuthState>(set => ({
-  session: null,
-  user: null,
-  loading: true,
-
-  setSession: session => set({session}),
+  session: null, user: null, loading: true,
+  setSession: session => set({session, user: session?.user ?? null}),
   setUser: user => set({user}),
-
   signOut: async () => {
-    await supabase.auth.signOut();
-    set({session: null, user: null});
+    try {await api('/auth/logout', 'POST');}
+    finally {await saveSession(null);}
   },
-
   init: () => {
-    supabase.auth.getSession().then(({data: {session}}) => {
-      set({session, loading: false});
+    if (initialized) return;
+    initialized = true;
+    onSessionChange(session => {
+      set({session, user: session?.user ?? null, loading: false});
+      if (!session) useGoalsStore.setState({goals: [], activeGoal: null, transactions: []});
     });
-    supabase.auth.onAuthStateChange((event, session) => {
-      // TOKEN_REFRESHED_FAILED o SIGNED_OUT → limpiar sesión → RootNavigator redirige a Auth
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        set({session, loading: false});
-      } else {
-        set({session, loading: false});
-      }
-    });
+    (async () => {
+      try {
+        const session = await restoreSession();
+        set({session, user: session?.user ?? null});
+        if (session) {
+          try {await updateSessionUser(await api<User>('/auth/me'));}
+          catch (error) {
+            if (error instanceof ApiError && error.status === 401) await saveSession(null);
+          }
+        }
+      } finally {set({loading: false});}
+    })().catch(() => set({session: null, user: null, loading: false}));
   },
 }));

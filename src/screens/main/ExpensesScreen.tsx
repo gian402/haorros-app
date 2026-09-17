@@ -6,7 +6,7 @@ import {
 import {colors} from '../../theme/colors';
 import {expensesService} from '../../services/expensesService';
 import {useAuthStore} from '../../store/authStore';
-import {Expense} from '../../supabase/types';
+import {Expense} from '../../types';
 
 const CATEGORIES = ['Comida', 'Transporte', 'Ropa', 'Salud', 'Ocio', 'Otro'];
 
@@ -93,7 +93,7 @@ export function ExpensesScreen() {
             placeholderTextColor="#666"
             value={desc}
             onChangeText={setDesc}
-            color="#FFFFFF"
+
           />
           <TextInput
             style={s.input}
@@ -102,7 +102,7 @@ export function ExpensesScreen() {
             keyboardType="decimal-pad"
             value={amount}
             onChangeText={setAmount}
-            color="#FFFFFF"
+
           />
           {/* Categorías */}
           <View style={s.cats}>

@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, StyleSheet} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {AuthStackParamList} from '../../supabase/types';
+import {AuthStackParamList} from '../../types';
 import {authService} from '../../services/authService';
 import {translateAuthError} from '../../services/authErrors';
 import {Input} from '../../components/Input';

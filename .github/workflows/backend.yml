@@ -1,0 +1,76 @@
+name: Test and package Laravel
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testing
+          MYSQL_DATABASE: haorros_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ptesting"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: haorros_test
+      DB_USERNAME: root
+      DB_PASSWORD: testing
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+      MAIL_MAILER: array
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mbstring, fileinfo, gd
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: php vendor/bin/phpunit
+      - run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+      - name: Package cPanel files
+        run: >-
+          zip -qr ../haorros-backend-cpanel.zip .
+          -x ".env" ".env.*" "tests/*" "node_modules/*" ".git/*"
+          "storage/logs/*" "storage/framework/cache/*" "storage/framework/sessions/*"
+          "storage/framework/views/*" "bootstrap/cache/*.php" ".phpunit*"
+          "database/*.sqlite" "resources/js/*" "resources/css/*"
+      - name: Include environment template
+        run: zip ../haorros-backend-cpanel.zip .env.example
+      - uses: actions/upload-artifact@v4
+        with:
+          name: haorros-backend-cpanel
+          path: haorros-backend-cpanel.zip
+          retention-days: 30
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+      - run: node --test tests/api-client.test.cjs

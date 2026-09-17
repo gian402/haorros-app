@@ -6,7 +6,7 @@ import {
 import {colors} from '../../theme/colors';
 import {loansService} from '../../services/loansService';
 import {useAuthStore} from '../../store/authStore';
-import {Loan} from '../../supabase/types';
+import {Loan} from '../../types';
 
 export function LoansScreen() {
   const session = useAuthStore(s => s.session);
@@ -111,7 +111,7 @@ export function LoansScreen() {
             placeholderTextColor="#666"
             value={desc}
             onChangeText={setDesc}
-            color="#FFFFFF"
+
           />
           <TextInput
             style={s.input}
@@ -120,7 +120,7 @@ export function LoansScreen() {
             keyboardType="decimal-pad"
             value={amount}
             onChangeText={setAmount}
-            color="#FFFFFF"
+
           />
           <TouchableOpacity style={s.addBtn} onPress={handleAdd} disabled={saving}>
             {saving

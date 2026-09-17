@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
 import {View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, StyleSheet} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {AuthStackParamList} from '../../supabase/types';
-import {supabase} from '../../supabase/client';
+import {AuthStackParamList} from '../../types';
+import {authService} from '../../services/authService';
 import {translateAuthError} from '../../services/authErrors';
 import {Input} from '../../components/Input';
 import {Button} from '../../components/Button';
@@ -19,10 +19,11 @@ export function ForgotPasswordScreen({navigation}: Props) {
   const handleSend = async () => {
     if (!email.trim()) {setError('Ingresa tu correo'); return;}
     setLoading(true); setError('');
-    const {error: err} = await supabase.auth.resetPasswordForEmail(email.trim());
-    setLoading(false);
-    if (err) {setError(translateAuthError(err.message)); return;}
-    setSent(true);
+    try {
+      await authService.forgotPassword(email.trim());
+      setSent(true);
+    } catch (e: unknown) {setError(translateAuthError(e instanceof Error ? e.message : ''));}
+    finally {setLoading(false);}
   };
 
   return (

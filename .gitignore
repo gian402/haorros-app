@@ -79,3 +79,10 @@ yarn-error.log
 .env
 .env.local
 .env.*
+
+!.env.example
+/backend/vendor/
+/backend/.env
+/backend/.phpunit.cache/
+
+.artifacts/

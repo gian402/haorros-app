@@ -1,4 +1,3 @@
-import 'react-native-url-polyfill/auto';
 import './global.css';
 import React from 'react';
 import {StatusBar} from 'react-native';

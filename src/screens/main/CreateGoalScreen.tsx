@@ -12,7 +12,7 @@ import {extractError} from '../../services/extractError';
 import {Input} from '../../components/Input';
 import {Button} from '../../components/Button';
 import {colors} from '../../theme/colors';
-import {MainStackParamList} from '../../supabase/types';
+import {MainStackParamList} from '../../types';
 
 type Props = {navigation: NativeStackNavigationProp<MainStackParamList, 'CreateGoal'>};
 

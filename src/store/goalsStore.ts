@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {Goal, Transaction} from '../supabase/types';
+import {Goal, Transaction} from '../types';
 
 interface GoalsState {
   goals: Goal[];
